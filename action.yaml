@@ -1,0 +1,95 @@
+name: Nuon
+description: Use the Nuon CLI.
+branding:
+  icon: 'terminal'
+  color: 'purple'
+inputs:
+  # for config file
+  org_id:
+    description: Your Nuon org for the config file.
+    required: true
+  api_token:
+    description: Your Nuon API token for the config file.
+    required: true
+  app_id:
+    description: The Nuon App for the config file.
+    required: false
+  api_url:
+    description: The URL of the Nuon API for the config file.
+    required: true
+    default: https://api.nuon.co
+  # for cli
+  nuon_version:
+    description: The version of the CLI you would like to use. If none is provided, the version will be fetched from the api url.
+    required: false
+    default: latest
+  # command to execute
+  command:
+    description: the args to execute as a nuon command. e.g. "orgs current" or "installs get -w $NUON_INSTALL_ID"
+    required: true
+    default: version
+outputs:
+  nuon_version:
+    description: The version of the CLI that was used for this command.
+    value: ${{ steps.version.outputs.nuon_version }}
+runs:
+  using: composite
+  steps:
+    - name: version
+      shell: bash
+      run: |
+        if [[ "$NUON_VERSION" == "" ]]; then
+          echo "Fetching API $NUON_API_URL"
+          NUON_VERSION=`curl -s $NUON_API_URL/version | jq -r '.version'`
+        fi
+        echo "nuon_version=$NUON_VERSION" >> $GITHUB_OUTPUT
+      env:
+        NUON_API_URL: ${{ inputs.api_url }}
+        NUON_VERSION: ${{ inputs.nuon_version }}
+    - name: install
+      shell: bash
+      run: |
+        INSTALLSH_LOCATION="${{ runner.temp }}/install.sh"
+        curl -fsSL https://nuon-artifacts.s3.us-west-2.amazonaws.com/cli/install.sh -o $INSTALLSH_LOCATION
+        chmod +x $INSTALLSH_LOCATION
+        bash -c "yes || true" | bash $INSTALLSH_LOCATION
+        echo "installed nuon version $(nuon -j version)"
+    - name: config
+      id: config
+      shell: bash
+      run: |
+        NUON_CONFIG="${{ github.workspace }}/.nuon"
+        echo "api_url: $NUON_API_URL"     >> $NUON_CONFIG
+        echo "api_token: $NUON_API_TOKEN" >> $NUON_CONFIG
+        echo "org_id: $NUON_ORG_ID"       >> $NUON_CONFIG
+        if [[ "$NUON_APP_ID" != "" ]]; then
+          echo "app_id: $NUON_APP_ID"     >> $NUON_CONFIG
+        fi
+
+        echo "nuon_config=$NUON_CONFIG" >> $GITHUB_OUTPUT
+      env:
+        NUON_API_URL: ${{ inputs.api_url }}
+        NUON_API_TOKEN: ${{ inputs.api_token }}
+        NUON_ORG_ID: ${{ inputs.org_id }}
+        NUON_APP_ID: ${{ inputs.app_id }}
+    - name: preflight
+      shell: bash
+      run: |
+        echo "NUON_CONFIG=$NUON_CONFIG"
+        # ensures the token is working and org exists
+        # NUON_CONFIG is quoted to avoid confusing error messages if it is empty
+        nuon -f "$NUON_CONFIG" orgs current
+
+        if [[ "$NUON_APP_ID" != "" ]]; then
+          nuon -f "$NUON_CONFIG" apps get
+        fi
+      env:
+        NUON_CONFIG: ${{ steps.config.outputs.nuon_config }}
+        NUON_APP_ID: ${{ inputs.app_id }}
+    - name: execute
+      shell: bash
+      run: |
+        nuon -f "$NUON_CONFIG" $COMMAND
+      env:
+        NUON_CONFIG: ${{ steps.config.outputs.nuon_config }}
+        COMMAND: ${{ inputs.command }}
