@@ -1,8 +1,10 @@
 name: Nuon
 description: Use the Nuon CLI.
+
 branding:
   icon: 'terminal'
   color: 'purple'
+
 inputs:
   # for config file
   org_id:
@@ -28,10 +30,12 @@ inputs:
     description: the args to execute as a nuon command. e.g. "orgs current" or "installs get -w $NUON_INSTALL_ID"
     required: true
     default: version
+
 outputs:
   nuon_version:
     description: The version of the CLI that was used for this command.
     value: ${{ steps.version.outputs.nuon_version }}
+
 runs:
   using: composite
   steps:
