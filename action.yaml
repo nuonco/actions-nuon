@@ -58,6 +58,8 @@ runs:
         chmod +x $INSTALLSH_LOCATION
         bash -c "yes || true" | bash $INSTALLSH_LOCATION
         echo "installed nuon version $(nuon -j version)"
+      env:
+        NUON_VERSION: ${{ steps.version.outputs.nuon_version }}
     - name: config
       id: config
       shell: bash
