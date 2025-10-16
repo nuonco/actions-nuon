@@ -62,15 +62,27 @@ runs:
       id: config
       shell: bash
       run: |
-        NUON_CONFIG="${{ github.workspace }}/.nuon"
-        echo "api_url: $NUON_API_URL"     >> $NUON_CONFIG
-        echo "api_token: $NUON_API_TOKEN" >> $NUON_CONFIG
-        echo "org_id: $NUON_ORG_ID"       >> $NUON_CONFIG
-        if [[ "$NUON_APP_ID" != "" ]]; then
-          echo "app_id: $NUON_APP_ID"     >> $NUON_CONFIG
+        echo "::group::Configuring Nuon CLI"
+        NUON_CONFIG="$HOME/.nuon"
+
+        cat > "$NUON_CONFIG" << EOF
+        api_url: ${NUON_API_URL}
+        api_token: ${NUON_API_TOKEN}
+        org_id: ${NUON_ORG_ID}
+        EOF
+
+        if [ -n "${NUON_APP_ID}" ]; then
+          echo "app_id: ${NUON_APP_ID}" >> "$NUON_CONFIG"
         fi
 
         echo "nuon_config=$NUON_CONFIG" >> $GITHUB_OUTPUT
+
+        # set the env var so subsequent steps can use Nuon CLI
+        # without needing to specify config file
+        echo "NUON_CONFIG_FILE=$NUON_CONFIG" >> $GITHUB_ENV
+
+        echo "Generated Nuon CLI config file at ${NUON_CONFIG}"
+        echo "::endgroup::"
       env:
         NUON_API_URL: ${{ inputs.api_url }}
         NUON_API_TOKEN: ${{ inputs.api_token }}
