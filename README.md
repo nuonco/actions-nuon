@@ -43,16 +43,46 @@ jobs:
           command: 'apps sync .'
 ```
 
+### Using the CLI directly
+
+```yaml
+name: Nuon Apps Sync
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Nuon CLI
+        uses: nuonco/actions-nuon@v1
+        with:
+          org_id: ${{ secrets.NUON_ORG_ID }}
+          api_token: ${{ secrets.NUON_API_TOKEN }}
+          app_id: ${{ secrets.NUON_APP_ID }}
+
+      - name: List all Installs
+        run: |
+          nuon installs list
+
+      - name: Sync Install Configs
+        run: |
+          nuon installs sync -d example-app/installs
+```
+
 ## Inputs
 
 | Input          | Description                         | Required | Default               |
 | -------------- | ----------------------------------- | -------- | --------------------- |
 | `org_id`       | Your Nuon organization ID           | Yes      | -                     |
 | `api_token`    | Your Nuon API token                 | Yes      | -                     |
-| `app_id`       | The Nuon App ID for the config file | No       | -                     |
+| `app_id`       | The Nuon App ID for the config file   | No       | -                     |
 | `api_url`      | The URL of the Nuon API             | No       | `https://api.nuon.co` |
 | `nuon_version` | Version of the Nuon CLI to use      | No       | `latest`              |
-| `command`      | The Nuon CLI command to execute     | Yes      | `version`             |
+| `command`      | The Nuon CLI command to execute     | No       | -                     |
 
 ## Outputs
 
@@ -69,11 +99,12 @@ The action performs the following steps:
 2. **Installation**: Downloads and installs the Nuon CLI
 3. **Configuration**: Creates a `.nuon` config file with your credentials
 4. **Preflight**: Validates authentication and configuration
-5. **Execution**: Runs your specified Nuon command
+5. **Execution**: Runs the Nuon command if specified
 
 ### Notes
 
 1. if any `NUON_` envs are provided to a specific step for an action, these will override the values in the config.
+1. the CLI is available for use in the steps that follow this action's run.
 
 ## Security Best Practices
 
@@ -111,7 +142,7 @@ Learn more about
 
 The action automatically sets up environment variables that can be referenced in your command:
 
-- `NUON_CONFIG`: Path to the generated config file
+- `NUON_CONFIG_FILE`: Path to the generated config file
 - `NUON_VERSION`: The CLI version being used
 
 ## Troubleshooting

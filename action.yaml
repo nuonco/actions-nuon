@@ -28,8 +28,8 @@ inputs:
   # command to execute
   command:
     description: the args to execute as a nuon command. e.g. "orgs current" or "installs get -w $NUON_INSTALL_ID"
-    required: true
-    default: version
+    required: false
+    default: ""
 
 outputs:
   nuon_version:
@@ -105,6 +105,7 @@ runs:
         NUON_APP_ID: ${{ inputs.app_id }}
     - name: execute
       shell: bash
+      if: ${{ inputs.command != '' }}
       run: |
         nuon -f "$NUON_CONFIG" $COMMAND
       env:
