@@ -46,6 +46,7 @@ runs:
           echo "Fetching API $NUON_API_URL"
           NUON_VERSION=`curl -s $NUON_API_URL/version | jq -r '.version'`
         fi
+        echo "NUON_VERSION=$NUON_VERSION" >> $GITHUB_ENV
         echo "nuon_version=$NUON_VERSION" >> $GITHUB_OUTPUT
       env:
         NUON_API_URL: ${{ inputs.api_url }}
@@ -58,8 +59,6 @@ runs:
         chmod +x $INSTALLSH_LOCATION
         bash -c "yes || true" | bash $INSTALLSH_LOCATION
         echo "installed nuon version $(nuon -j version)"
-      env:
-        NUON_VERSION: ${{ steps.version.outputs.nuon_version }}
     - name: config
       id: config
       shell: bash
