@@ -56,7 +56,6 @@ runs:
       run: |
         INSTALLSH_LOCATION="${{ runner.temp }}/install.sh"
         curl -fsSL https://nuon-artifacts.s3.us-west-2.amazonaws.com/cli/install.sh -o $INSTALLSH_LOCATION
-        chmod +x $INSTALLSH_LOCATION
         bash $INSTALLSH_LOCATION --no-input
         echo "installed nuon version $(nuon -j version)"
     - name: config
