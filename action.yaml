@@ -25,6 +25,15 @@ inputs:
     description: The version of the CLI you would like to use. If none is provided, the version will be fetched from the api url.
     required: false
     default: latest
+  # extensions
+  extensions:
+    description: >
+      Newline-separated list of CLI extensions to install.
+      Short names (e.g. "policies") resolve to nuonco/nuon-ext-policies.
+      Use org/repo format for third-party extensions (e.g. "myorg/nuon-ext-foo").
+      Append @ref to pin a version (e.g. "policies@v1.0.0").
+    required: false
+    default: ""
   # command to execute
   command:
     description: the args to execute as a nuon command. e.g. "orgs current" or "installs get -w $NUON_INSTALL_ID"
@@ -103,6 +112,22 @@ runs:
       env:
         NUON_CONFIG: ${{ steps.config.outputs.nuon_config }}
         NUON_APP_ID: ${{ inputs.app_id }}
+    - name: extensions
+      shell: bash
+      if: ${{ inputs.extensions != '' }}
+      run: |
+        echo "::group::Installing Nuon CLI extensions"
+        while IFS= read -r ext; do
+          ext="$(echo "$ext" | xargs)"
+          if [[ -z "$ext" ]]; then
+            continue
+          fi
+          echo "Installing extension: $ext"
+          nuon ext install "$ext"
+        done <<< "$NUON_EXTENSIONS"
+        echo "::endgroup::"
+      env:
+        NUON_EXTENSIONS: ${{ inputs.extensions }}
     - name: execute
       shell: bash
       if: ${{ inputs.command != '' }}
