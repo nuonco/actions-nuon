@@ -42,7 +42,7 @@ runs:
     - name: version
       shell: bash
       run: |
-        if [[ "$NUON_VERSION" == "" ]]; then
+        if [[ "$NUON_VERSION" == "" || "$NUON_VERSION" == "latest" ]]; then
           echo "Fetching API $NUON_API_URL"
           NUON_VERSION=`curl -s $NUON_API_URL/version | jq -r '.version'`
         fi
