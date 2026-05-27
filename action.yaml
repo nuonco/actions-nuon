@@ -43,8 +43,18 @@ runs:
       shell: bash
       run: |
         if [[ "$NUON_VERSION" == "" || "$NUON_VERSION" == "latest" ]]; then
-          echo "Fetching API $NUON_API_URL"
-          NUON_VERSION=`curl -s $NUON_API_URL/version | jq -r '.version'`
+          for attempt in 1 2 3; do
+            echo "Fetching version from $NUON_API_URL (attempt $attempt/3)"
+            NUON_VERSION=`curl -fsS $NUON_API_URL/version | jq -r '.version'`
+            if [[ "$NUON_VERSION" != "" && "$NUON_VERSION" != "null" ]]; then
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$NUON_VERSION" == "" || "$NUON_VERSION" == "null" ]]; then
+            echo "Failed to fetch nuon version from $NUON_API_URL after 3 attempts"
+            exit 1
+          fi
         fi
         echo "NUON_VERSION=$NUON_VERSION" >> $GITHUB_ENV
         echo "nuon_version=$NUON_VERSION" >> $GITHUB_OUTPUT
