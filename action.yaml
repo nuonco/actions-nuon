@@ -11,8 +11,8 @@ inputs:
     description: Your Nuon org for the config file.
     required: true
   api_token:
-    description: Your Nuon API token for the config file.
-    required: true
+    description: Your Nuon API token for the config file. Omit to authenticate with OIDC federation (requires `permissions: id-token: write`).
+    required: false
   app_id:
     description: The Nuon App for the config file.
     required: false
@@ -20,6 +20,9 @@ inputs:
     description: The URL of the Nuon API for the config file.
     required: true
     default: https://api.nuon.co
+  oidc_audience:
+    description: The audience to request for the OIDC token. Defaults to api_url. Set this if your trust policy uses an audience that differs from api_url.
+    required: false
   # for cli
   nuon_version:
     description: The version of the CLI you would like to use. If none is provided, the version will be fetched from the api url.
@@ -77,9 +80,12 @@ runs:
 
         cat > "$NUON_CONFIG" << EOF
         api_url: ${NUON_API_URL}
-        api_token: ${NUON_API_TOKEN}
         org_id: ${NUON_ORG_ID}
         EOF
+
+        if [ -n "${NUON_API_TOKEN}" ]; then
+          echo "api_token: ${NUON_API_TOKEN}" >> "$NUON_CONFIG"
+        fi
 
         if [ -n "${NUON_APP_ID}" ]; then
           echo "app_id: ${NUON_APP_ID}" >> "$NUON_CONFIG"
@@ -91,6 +97,10 @@ runs:
         # without needing to specify config file
         echo "NUON_CONFIG_FILE=$NUON_CONFIG" >> $GITHUB_ENV
 
+        if [ -n "${NUON_OIDC_AUDIENCE}" ]; then
+          echo "NUON_OIDC_AUDIENCE=${NUON_OIDC_AUDIENCE}" >> $GITHUB_ENV
+        fi
+
         echo "Generated Nuon CLI config file at ${NUON_CONFIG}"
         echo "::endgroup::"
       env:
@@ -98,6 +108,7 @@ runs:
         NUON_API_TOKEN: ${{ inputs.api_token }}
         NUON_ORG_ID: ${{ inputs.org_id }}
         NUON_APP_ID: ${{ inputs.app_id }}
+        NUON_OIDC_AUDIENCE: ${{ inputs.oidc_audience }}
     - name: preflight
       shell: bash
       run: |
