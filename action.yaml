@@ -11,7 +11,7 @@ inputs:
     description: Your Nuon org for the config file.
     required: true
   api_token:
-    description: Your Nuon API token for the config file. Omit to authenticate with OIDC federation (requires `permissions: id-token: write`).
+    description: "Your Nuon API token for the config file. Omit to authenticate with OIDC federation (requires `permissions: id-token: write`)."
     required: false
   app_id:
     description: The Nuon App for the config file.
