@@ -43,8 +43,30 @@ runs:
   using: composite
   steps:
     - name: version
+      id: version
       shell: bash
       run: |
+        ARTIFACTS_BASE_URL="https://nuon-artifacts.s3.us-west-2.amazonaws.com/cli"
+
+        # mirror install.sh's os/arch detection, so that we check for the exact
+        # artifact the installer will reach for
+        if command -v dpkg > /dev/null 2>&1; then
+          ARCH=$(dpkg --print-architecture)
+        else
+          ARCH=$(uname -m)
+        fi
+        if [[ "$ARCH" == "x86_64" ]]; then
+          ARCH=amd64
+        fi
+        OS=$(uname -s | awk '{print tolower($0)}')
+
+        # succeeds when the release bucket holds a binary for the given version.
+        # a 404 is an expected outcome here, so curl stays quiet about it
+        published() {
+          curl -fsI -o /dev/null "$ARTIFACTS_BASE_URL/$1/nuon_${OS}_${ARCH}.gz" ||
+            curl -fsI -o /dev/null "$ARTIFACTS_BASE_URL/$1/nuon_${OS}_${ARCH}"
+        }
+
         if [[ "$NUON_VERSION" == "" || "$NUON_VERSION" == "latest" ]]; then
           for attempt in 1 2 3; do
             echo "Fetching version from $NUON_API_URL (attempt $attempt/3)"
@@ -57,6 +79,19 @@ runs:
           if [[ "$NUON_VERSION" == "" || "$NUON_VERSION" == "null" ]]; then
             echo "Failed to fetch nuon version from $NUON_API_URL after 3 attempts"
             exit 1
+          fi
+          echo "$NUON_API_URL reports version $NUON_VERSION"
+
+          if published "$NUON_VERSION"; then
+            echo "Found nuon $NUON_VERSION for ${OS}_${ARCH} in the release bucket"
+          else
+            LATEST=$(curl -fsS "$ARTIFACTS_BASE_URL/latest.txt" | tr -d '[:space:]')
+            if [[ "$LATEST" == "" ]]; then
+              echo "::error title=Nuon CLI version unavailable::nuon $NUON_VERSION is not published for ${OS}_${ARCH}, and $ARTIFACTS_BASE_URL/latest.txt could not be read to fall back."
+              exit 1
+            fi
+            echo "::warning title=Nuon CLI version fallback::$NUON_API_URL reports version $NUON_VERSION, but no ${OS}_${ARCH} binary is published for it. Falling back to latest ($LATEST)."
+            NUON_VERSION="$LATEST"
           fi
         fi
         echo "NUON_VERSION=$NUON_VERSION" >> $GITHUB_ENV
@@ -72,7 +107,6 @@ runs:
         bash $INSTALLSH_LOCATION --no-input
         echo "installed nuon version $(nuon -j version)"
     - name: config
-      id: config
       shell: bash
       run: |
         echo "::group::Configuring Nuon CLI"
@@ -90,8 +124,6 @@ runs:
         if [ -n "${NUON_APP_ID}" ]; then
           echo "app_id: ${NUON_APP_ID}" >> "$NUON_CONFIG"
         fi
-
-        echo "nuon_config=$NUON_CONFIG" >> $GITHUB_OUTPUT
 
         # set the env var so subsequent steps can use Nuon CLI
         # without needing to specify config file
@@ -112,22 +144,19 @@ runs:
     - name: preflight
       shell: bash
       run: |
-        echo "NUON_CONFIG=$NUON_CONFIG"
+        echo "NUON_CONFIG_FILE=$NUON_CONFIG_FILE"
         # ensures the token is working and org exists
-        # NUON_CONFIG is quoted to avoid confusing error messages if it is empty
-        nuon -f "$NUON_CONFIG" orgs current
+        nuon orgs current
 
         if [[ "$NUON_APP_ID" != "" ]]; then
-          nuon -f "$NUON_CONFIG" apps get
+          nuon apps get
         fi
       env:
-        NUON_CONFIG: ${{ steps.config.outputs.nuon_config }}
         NUON_APP_ID: ${{ inputs.app_id }}
     - name: execute
       shell: bash
       if: ${{ inputs.command != '' }}
       run: |
-        nuon -f "$NUON_CONFIG" $COMMAND
+        nuon $COMMAND
       env:
-        NUON_CONFIG: ${{ steps.config.outputs.nuon_config }}
         COMMAND: ${{ inputs.command }}
