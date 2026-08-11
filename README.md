@@ -13,11 +13,15 @@ The action authenticates with Nuon in one of two ways.
 
 ### OIDC federation (recommended)
 
-GitHub Actions is an OIDC issuer, so the action can authenticate without any stored secret. When `api_token` is omitted, the Nuon CLI detects the ambient GitHub Actions token and exchanges it for a short-lived org token automatically.
+GitHub Actions is an OIDC issuer, so the action can authenticate without any stored secret. When `api_token` is omitted,
+the Nuon CLI detects the ambient GitHub Actions token and exchanges it for a short-lived org token automatically.
 
-First, create a trust policy for your repository once — from the Dashboard (**Connections → your GitHub connection → Manage OIDC**, which prefills the issuer, audience, and `sub`), or with the CLI. See the [OIDC federation docs](https://docs.nuon.co/concepts/oidc-federation) for details.
+First, create a trust policy for your repository once — from the Dashboard (**Connections → your GitHub connection →
+Manage OIDC**, which prefills the issuer, audience, and `sub`), or with the CLI. See the
+[OIDC federation docs](https://docs.nuon.co/concepts/oidc-federation) for details.
 
-The action requests an OIDC token whose audience defaults to `api_url` (`https://api.nuon.co`), which must match your trust policy's audience. If your policy uses a different audience, set the `oidc_audience` input to override it.
+The action requests an OIDC token whose audience defaults to `api_url` (`https://api.nuon.co`), which must match your
+trust policy's audience. If your policy uses a different audience, set the `oidc_audience` input to override it.
 
 Then grant the job permission to request an OIDC token and omit `api_token`:
 
@@ -41,7 +45,8 @@ jobs:
 
 ### API token
 
-If you can't use OIDC, pass a long-lived [API token](https://docs.nuon.co/concepts/api-tokens) stored as a repository secret via `api_token` (see the examples below).
+If you can't use OIDC, pass a long-lived [API token](https://docs.nuon.co/concepts/api-tokens) stored as a repository
+secret via `api_token` (see the examples below).
 
 ## Usage
 
@@ -111,15 +116,15 @@ jobs:
 
 ## Inputs
 
-| Input          | Description                         | Required | Default               |
-| -------------- | ----------------------------------- | -------- | --------------------- |
-| `org_id`       | Your Nuon organization ID           | Yes      | -                     |
-| `api_token`    | Your Nuon API token. Omit to authenticate with OIDC federation. | No | -         |
-| `app_id`       | The Nuon App ID for the config file   | No       | -                     |
-| `api_url`      | The URL of the Nuon API             | No       | `https://api.nuon.co` |
-| `oidc_audience`| OIDC token audience. Set only if your trust policy's audience differs from `api_url`. | No | `api_url` |
-| `nuon_version` | Version of the Nuon CLI to use      | No       | `latest`              |
-| `command`      | The Nuon CLI command to execute     | No       | -                     |
+| Input           | Description                                                                           | Required | Default                |
+| --------------- | ------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| `org_id`        | Your Nuon organization ID                                                             | Yes      | -                      |
+| `api_token`     | Your Nuon API token. Omit to authenticate with OIDC federation.                       | No       | -                      |
+| `app_id`        | The Nuon App ID for the config file                                                   | No       | -                      |
+| `api_url`       | The URL of the Nuon API                                                               | No       | `https://api.nuon.co`  |
+| `oidc_audience` | OIDC token audience. Set only if your trust policy's audience differs from `api_url`. | No       | `api_url`              |
+| `nuon_version`  | Version of the Nuon CLI to use. If none is provided we'll use the api to choose.      | No       | `/version` or `latest` |
+| `command`       | The Nuon CLI command to execute                                                       | No       | -                      |
 
 ## Outputs
 
@@ -145,7 +150,8 @@ The action performs the following steps:
 
 ## Security Best Practices
 
-- **Prefer OIDC**: Authenticate with [OIDC federation](https://docs.nuon.co/concepts/oidc-federation) instead of a stored token when possible — there is no secret to leak or rotate.
+- **Prefer OIDC**: Authenticate with [OIDC federation](https://docs.nuon.co/concepts/oidc-federation) instead of a
+  stored token when possible — there is no secret to leak or rotate.
 - **Never commit secrets**: If you do use `api_token`, always store it as a GitHub Secret — never inline it.
 - **Limit permissions**: Grant the minimum necessary role to your Nuon API tokens and trust policies.
 
