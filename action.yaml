@@ -146,7 +146,7 @@ runs:
       run: |
         echo "NUON_CONFIG_FILE=$NUON_CONFIG_FILE"
         # ensures the token is working and org exists
-        nuon orgs current
+        nuon orgs get
 
         if [[ "$NUON_APP_ID" != "" ]]; then
           nuon apps get
