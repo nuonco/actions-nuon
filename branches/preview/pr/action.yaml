@@ -1,0 +1,110 @@
+name: Preview branch from pull request
+description: Trigger a Nuon app branch preview from a pull request number.
+
+branding:
+  icon: git-pull-request
+  color: purple
+
+inputs:
+  org_id:
+    description: Your Nuon org for the config file.
+    required: true
+  api_token:
+    description: "Your Nuon API token for the config file. Omit to authenticate with OIDC federation (requires `permissions: id-token: write`)."
+    required: false
+  app_id:
+    description: The Nuon App for the config file.
+    required: false
+  api_url:
+    description: The URL of the Nuon API for the config file.
+    required: true
+    default: https://api.nuon.co
+  oidc_audience:
+    description: The audience to request for the OIDC token. Defaults to api_url. Set this if your trust policy uses an audience that differs from api_url.
+    required: false
+  nuon_version:
+    description: The version of the CLI you would like to use. If none is provided, the version will be fetched from the api url.
+    required: false
+    default: latest
+  branch_id:
+    description: The ID or name of the app branch to preview.
+    required: true
+  pr_number:
+    description: Pull request number to preview.
+    required: true
+  mode:
+    description: "Preview mode: plan-only, apply, or build-only. Omit to use the branch config, which falls back to plan-only."
+    required: false
+  install_id:
+    description: Install to run the preview against.
+    required: false
+  head_sha:
+    description: Commit SHA for the preview source. Omit to let the CLI resolve it.
+    required: false
+  config_id:
+    description: Branch config ID. Omit to use the latest config.
+    required: false
+  force:
+    description: Force rebuild all components.
+    required: false
+    default: "false"
+  auto_approve:
+    description: Skip the approval gate before deploy steps.
+    required: false
+    default: "false"
+  no_wait:
+    description: Return immediately after triggering without launching the workflow viewer.
+    required: false
+    default: "true"
+  wait:
+    description: Block until the preview workflow completes. Takes precedence over no_wait.
+    required: false
+    default: "false"
+
+outputs:
+  nuon_version:
+    description: The version of the CLI that was used for this command.
+    value: ${{ steps.version.outputs.nuon_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: version
+      id: version
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/setup.sh" version
+      env:
+        NUON_API_URL: ${{ inputs.api_url }}
+        NUON_VERSION: ${{ inputs.nuon_version }}
+    - name: install
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/setup.sh" install
+    - name: config
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/setup.sh" config
+      env:
+        NUON_API_URL: ${{ inputs.api_url }}
+        NUON_API_TOKEN: ${{ inputs.api_token }}
+        NUON_ORG_ID: ${{ inputs.org_id }}
+        NUON_APP_ID: ${{ inputs.app_id }}
+        NUON_OIDC_AUDIENCE: ${{ inputs.oidc_audience }}
+    - name: preflight
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/setup.sh" preflight
+      env:
+        NUON_APP_ID: ${{ inputs.app_id }}
+    - name: preview
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/preview.sh" pr
+      env:
+        NUON_APP_ID: ${{ inputs.app_id }}
+        NUON_BRANCH_ID: ${{ inputs.branch_id }}
+        NUON_PR_NUMBER: ${{ inputs.pr_number }}
+        NUON_PREVIEW_MODE: ${{ inputs.mode }}
+        NUON_INSTALL_ID: ${{ inputs.install_id }}
+        NUON_HEAD_SHA: ${{ inputs.head_sha }}
+        NUON_CONFIG_ID: ${{ inputs.config_id }}
+        NUON_FORCE: ${{ inputs.force }}
+        NUON_AUTO_APPROVE: ${{ inputs.auto_approve }}
+        NUON_NO_WAIT: ${{ inputs.no_wait }}
+        NUON_WAIT: ${{ inputs.wait }}

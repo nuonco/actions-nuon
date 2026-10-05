@@ -148,6 +148,41 @@ The action performs the following steps:
 1. if any `NUON_` envs are provided to a specific step for an action, these will override the values in the config.
 1. the CLI is available for use in the steps that follow this action's run.
 
+## App branches
+
+Dedicated actions for `nuon branches trigger` and `nuon branches preview`. They run the same version, install, config,
+and preflight steps, then execute the Nuon command.
+
+| Action | Command |
+| ------ | ------- |
+| `branches/trigger/tag` | `nuon branches trigger --run-type tag` |
+| `branches/trigger/commit` | `nuon branches trigger --run-type commit` |
+| `branches/trigger/pr` | `nuon branches trigger --run-type pr` |
+| `branches/preview/pr` | `nuon branches preview --pr-number` |
+| `branches/preview/git-ref` | `nuon branches preview --git-ref` |
+
+```yaml
+- uses: nuonco/actions-nuon/branches/trigger/tag@v1
+  with:
+    org_id: ${{ vars.NUON_ORG_ID }}
+    app_id: ${{ vars.NUON_APP_ID }}
+    branch_id: production
+    tag: ${{ github.ref_name }}
+
+- uses: nuonco/actions-nuon/branches/preview/pr@v1
+  with:
+    org_id: ${{ vars.NUON_ORG_ID }}
+    app_id: ${{ vars.NUON_APP_ID }}
+    branch_id: preview
+    pr_number: ${{ github.event.pull_request.number }}
+    mode: plan-only
+    install_id: ${{ vars.NUON_INSTALL_ID }}
+```
+
+Trigger actions take `tag`, `sha`, or `pr_number`. Preview actions take `pr_number` or `git_ref`, plus optional `mode`
+(`plan-only`, `apply`, `build-only`), `install_id`, `head_sha`, `config_id`, `auto_approve`, and `wait`. `no_wait`
+defaults to `true`. `wait: true` passes `--wait` instead.
+
 ## Security Best Practices
 
 - **Prefer OIDC**: Authenticate with [OIDC federation](https://docs.nuon.co/concepts/oidc-federation) instead of a
